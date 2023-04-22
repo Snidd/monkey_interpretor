@@ -4,6 +4,14 @@ pub enum Token {
     INT(i32),
     ASSIGN,
     PLUS,
+    MINUS,
+    BANG,
+    ASTERISK,
+    SLASH,
+    LT,
+    GT,
+    EQ,
+    NOT_EQ,
     COMMA,
     SEMICOLON,
     LPAREN,
@@ -12,27 +20,26 @@ pub enum Token {
     RBRACE,
     FUNCTION,
     LET,
-    ILLEGAL,
+    TRUE,
+    FALSE,
+    IF,
+    ELSE,
+    RETURN,
+    ILLEGAL(String),
     EOF,
 }
 
 impl Token {
-    pub fn get_literal(&self) -> String {
-        match self {
-            Token::IDENT(ident) => ident.to_string(),
-            Token::INT(number) => number.to_string(),
-            Token::ASSIGN => ASSIGN.to_string(),
-            Token::PLUS => PLUS.to_string(),
-            Token::COMMA => COMMA.to_string(),
-            Token::SEMICOLON => SEMICOLON.to_string(),
-            Token::LPAREN => LPAREN.to_string(),
-            Token::RPAREN => RPAREN.to_string(),
-            Token::LBRACE => LBRACE.to_string(),
-            Token::RBRACE => RBRACE.to_string(),
-            Token::FUNCTION => FUNCTION.to_string(),
-            Token::LET => LET.to_string(),
-            Token::ILLEGAL => ILLEGAL.to_string(),
-            Token::EOF => EOF.to_string(),
+    pub fn lookup_token(ident: &str) -> Token {
+        match ident {
+            "fn" => Token::FUNCTION,
+            "let" => Token::LET,
+            "true" => Token::TRUE,
+            "false" => Token::FALSE,
+            "if" => Token::IF,
+            "else" => Token::ELSE,
+            "return" => Token::RETURN,
+            identifier => Token::IDENT(identifier.to_string()),
         }
     }
 }
@@ -51,20 +58,3 @@ pub struct Token {
         }
     }
 } */
-
-const ILLEGAL: &str = "ILLEGAL";
-const EOF: &str = "EOF";
-
-// Identifiers + literals;
-const ASSIGN: &str = "=";
-const PLUS: &str = "+";
-// Delimiters;
-const COMMA: &str = ",";
-const SEMICOLON: &str = ";";
-const LPAREN: &str = "(";
-const RPAREN: &str = ")";
-const LBRACE: &str = "{";
-const RBRACE: &str = "}";
-// Keywords;
-const FUNCTION: &str = "FUNCTION";
-const LET: &str = "LET";
