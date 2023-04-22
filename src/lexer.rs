@@ -51,17 +51,11 @@ impl Lexer {
 
     fn skip_whitespace(&mut self) {
         while self.ch.is_some_and(|char| char.is_whitespace()) {
-            println!(
-                "skipping whitespace at {} [{}]",
-                self.position,
-                self.ch.unwrap()
-            );
             self.read_char();
         }
     }
 
     pub fn next_token(&mut self) -> Token {
-        println!("{:?}", self);
         self.skip_whitespace();
         let mut read_next = true;
         let token = match self.ch {
@@ -109,7 +103,6 @@ impl Lexer {
                 }
             }
         };
-        println!("{:?} {}", token, self.position);
         if read_next {
             self.read_char();
         }
