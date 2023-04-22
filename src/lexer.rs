@@ -1,4 +1,4 @@
-use crate::token::{self, Token, TokenType};
+use crate::token::Token;
 
 #[derive(Debug)]
 struct Lexer {
@@ -29,25 +29,20 @@ impl Lexer {
     }
 
     pub fn next_token(&mut self) -> Token {
-        if let Some(ch) = self.ch {
-            let result = match ch {
-                '=' => Token::new(ch, token::ASSIGN),
-                ';' => Token::new(ch, token::SEMICOLON),
-                '(' => Token::new(ch, token::LPAREN),
-                ')' => Token::new(ch, token::RPAREN),
-                '{' => Token::new(ch, token::LBRACE),
-                '}' => Token::new(ch, token::RBRACE),
-                ',' => Token::new(ch, token::COMMA),
-                '+' => Token::new(ch, token::PLUS),
-                _ => Token::new(ch, token::ILLEGAL),
-            };
-            self.read_char();
-            return result;
-        }
-        Token {
-            literal: "".to_string(),
-            token_type: TokenType(token::EOF.to_string()),
-        }
+        let result = match self.ch {
+            Some('=') => Token::ASSIGN,
+            Some(';') => Token::SEMICOLON,
+            Some('(') => Token::LPAREN,
+            Some(')') => Token::RPAREN,
+            Some('{') => Token::LBRACE,
+            Some('}') => Token::RBRACE,
+            Some(',') => Token::COMMA,
+            Some('+') => Token::PLUS,
+            None => Token::EOF,
+            _ => Token::ILLEGAL,
+        };
+        self.read_char();
+        return result;
     }
 }
 
@@ -65,55 +60,50 @@ let result = add(five, ten);
 ";
 
     let tests = vec![
-        (token::LET, "let"),
-        (token::IDENT, "five"),
-        (token::ASSIGN, "="),
-        (token::INT, "5"),
-        (token::SEMICOLON, ";"),
-        (token::LET, "let"),
-        (token::IDENT, "ten"),
-        (token::ASSIGN, "="),
-        (token::INT, "10"),
-        (token::SEMICOLON, ";"),
-        (token::LET, "let"),
-        (token::IDENT, "add"),
-        (token::ASSIGN, "="),
-        (token::FUNCTION, "fn"),
-        (token::LPAREN, "("),
-        (token::IDENT, "x"),
-        (token::COMMA, ","),
-        (token::IDENT, "y"),
-        (token::RPAREN, ")"),
-        (token::LBRACE, "{"),
-        (token::IDENT, "x"),
-        (token::PLUS, "+"),
-        (token::IDENT, "y"),
-        (token::SEMICOLON, ";"),
-        (token::RBRACE, "}"),
-        (token::SEMICOLON, ";"),
-        (token::LET, "let"),
-        (token::IDENT, "result"),
-        (token::ASSIGN, "="),
-        (token::IDENT, "add"),
-        (token::LPAREN, "("),
-        (token::IDENT, "five"),
-        (token::COMMA, ","),
-        (token::IDENT, "ten"),
-        (token::RPAREN, ")"),
-        (token::SEMICOLON, ";"),
-        (token::EOF, ""),
+        (Token::LET, "let"),
+        (Token::IDENT("five".to_string()), "five"),
+        (Token::ASSIGN, "="),
+        (Token::INT(5), "5"),
+        (Token::SEMICOLON, ";"),
+        (Token::LET, "let"),
+        (Token::IDENT("ten".to_string()), "ten"),
+        (Token::ASSIGN, "="),
+        (Token::INT(10), "10"),
+        (Token::SEMICOLON, ";"),
+        (Token::LET, "let"),
+        (Token::IDENT("add".to_string()), "add"),
+        (Token::ASSIGN, "="),
+        (Token::FUNCTION, "fn"),
+        (Token::LPAREN, "("),
+        (Token::IDENT("x".to_string()), "x"),
+        (Token::COMMA, ","),
+        (Token::IDENT("y".to_string()), "y"),
+        (Token::RPAREN, ")"),
+        (Token::LBRACE, "{"),
+        (Token::IDENT("x".to_string()), "x"),
+        (Token::PLUS, "+"),
+        (Token::IDENT("y".to_string()), "y"),
+        (Token::SEMICOLON, ";"),
+        (Token::RBRACE, "}"),
+        (Token::SEMICOLON, ";"),
+        (Token::LET, "let"),
+        (Token::IDENT("result".to_string()), "result"),
+        (Token::ASSIGN, "="),
+        (Token::IDENT("add".to_string()), "add"),
+        (Token::LPAREN, "("),
+        (Token::IDENT("five".to_string()), "five"),
+        (Token::COMMA, ","),
+        (Token::IDENT("ten".to_string()), "ten"),
+        (Token::RPAREN, ")"),
+        (Token::SEMICOLON, ";"),
+        (Token::EOF, ""),
     ];
 
     let mut lexer = Lexer::new(input);
 
     for (index, (expected_type, expected_literal)) in tests.into_iter().enumerate() {
         let token = lexer.next_token();
-        assert_eq!(token.literal, expected_literal, "Index {}", index);
-        assert_eq!(
-            token.token_type,
-            TokenType(expected_type.to_string()),
-            "Index {}",
-            index
-        );
+        assert_eq!(token, expected_type, "Index {}", index);
+        assert_eq!(token.get_literal(), expected_literal, "Index {}", index);
     }
 }
