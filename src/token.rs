@@ -1,5 +1,5 @@
 #[allow(non_camel_case_types)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Hash, Eq)]
 pub enum Token {
     IDENT(String),
     INT(i32),

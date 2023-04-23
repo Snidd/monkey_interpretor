@@ -11,7 +11,7 @@ impl Lexer {
     pub fn new(input: &str) -> Self {
         Self {
             input: input.to_string(),
-            ch: input.chars().nth(0),
+            ch: input.chars().next(),
             position: 0,
             read_position: 1,
         }
