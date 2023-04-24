@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 use crate::{
     ast::{
         self, Expression, ExpressionTypes, Node, ParseErrors, Program, Statement, StatementTypes,
     },
-    lexer::{self, Lexer},
+    lexer::{self},
     token::*,
 };
 
@@ -189,6 +187,7 @@ impl Parser {
 }
 
 #[cfg(test)]
+use crate::lexer::Lexer;
 #[test]
 fn test_identifier_expression() {
     let input = "foobar;";
