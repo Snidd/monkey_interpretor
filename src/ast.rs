@@ -1,4 +1,7 @@
+use std::fmt::Display;
+
 use crate::token::*;
+use itertools::Itertools;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -13,7 +16,6 @@ pub enum ParseErrors {
 
 pub trait Node {
     fn token_literal(&self) -> String;
-    fn string(&self) -> String;
 }
 
 #[derive(Debug)]
@@ -29,24 +31,32 @@ impl Node for Statement {
             StatementTypes::ExpressionStatement(token, _) => format!("{:?}", token),
         }
     }
+}
 
-    fn string(&self) -> String {
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.statement_type {
             StatementTypes::LetStatement(token, name, expr) => {
-                return format!(
-                    "{:?} {} = {};",
-                    token,
-                    name,
-                    expr.as_ref().unwrap().string()
-                );
+                return write!(f, "{:?} {} = {};", token, name, format_expression(expr));
             }
             StatementTypes::ReturnStatement(token, expr) => {
-                format!("{:?} = {};", token, expr.as_ref().unwrap().string())
+                write!(f, "{:?} = {};", token, format_expression(expr))
             }
             StatementTypes::ExpressionStatement(token, expr) => {
-                format!("{:?} = {};", token, expr.as_ref().unwrap().string())
+                write!(f, "{:?} = {};", token, format_expression(expr))
             }
         }
+    }
+}
+
+fn format_expression(expr: &Option<Expression>) -> String {
+    if expr.is_none() {
+        return "None".to_string();
+    }
+
+    match &expr.as_ref().unwrap().expression_type {
+        ExpressionTypes::Identifier(_token, value) => value.to_string(),
+        ExpressionTypes::IntegerLiteral(_, value) => value.to_string(),
     }
 }
 
@@ -75,13 +85,6 @@ impl Node for Expression {
             ExpressionTypes::IntegerLiteral(token, _) => format!("{:?}", token),
         }
     }
-
-    fn string(&self) -> String {
-        match &self.expression_type {
-            ExpressionTypes::Identifier(_token, value) => value.to_string(),
-            ExpressionTypes::IntegerLiteral(_, value) => value.to_string(),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -97,8 +100,11 @@ impl Program {
         }
         return "".to_string();
     }
-    pub fn string(&self) -> String {
-        return self.statements.iter().map(|s| s.string()).collect();
+}
+
+impl Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.statements.iter().format(", "))
     }
 }
 
@@ -121,5 +127,7 @@ fn test_string() {
         }],
     };
 
-    assert_eq!(program.string(), "LET myVar = anotherVar;");
+    let program_str = format!("{}", program);
+
+    assert_eq!(program_str, "LET myVar = anotherVar;");
 }
