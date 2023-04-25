@@ -10,6 +10,8 @@ pub enum ParseErrors {
     InvalidToken { expected: String, found: String },
     #[error("Unknown Expression ({expression:?})")]
     UnknownExpression { expression: String },
+    #[error("No prefix parse function for {token:?} found")]
+    NoPrefixParser { token: Token },
     #[error("Unknown Error")]
     Unknown,
 }
@@ -37,26 +39,43 @@ impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.statement_type {
             StatementTypes::LetStatement(token, name, expr) => {
-                return write!(f, "{:?} {} = {};", token, name, format_expression(expr));
+                return write!(
+                    f,
+                    "{:?} {} = {};",
+                    token,
+                    name,
+                    format_optional_expression(expr)
+                );
             }
             StatementTypes::ReturnStatement(token, expr) => {
-                write!(f, "{:?} = {};", token, format_expression(expr))
+                write!(f, "{:?} = {};", token, format_optional_expression(expr))
             }
             StatementTypes::ExpressionStatement(token, expr) => {
-                write!(f, "{:?} = {};", token, format_expression(expr))
+                write!(f, "{:?} = {};", token, format_optional_expression(expr))
             }
         }
     }
 }
 
-fn format_expression(expr: &Option<Expression>) -> String {
+fn format_optional_expression(expr: &Option<Expression>) -> String {
     if expr.is_none() {
         return "None".to_string();
     }
 
-    match &expr.as_ref().unwrap().expression_type {
-        ExpressionTypes::Identifier(_token, value) => value.to_string(),
-        ExpressionTypes::IntegerLiteral(_, value) => value.to_string(),
+    return format!("{}", expr.as_ref().unwrap());
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.expression_type {
+            ExpressionTypes::Identifier(_token, value) => write!(f, "{}", value.to_string()),
+            ExpressionTypes::IntegerLiteral(_, value) => write!(f, "{}", value.to_string()),
+            ExpressionTypes::PrefixExpression {
+                token: _,
+                operator,
+                right,
+            } => write!(f, "({}{})", operator, right),
+        }
     }
 }
 
@@ -76,14 +95,16 @@ pub struct Expression {
 pub enum ExpressionTypes {
     Identifier(Token, String),
     IntegerLiteral(Token, i32),
+    PrefixExpression {
+        token: Token,
+        operator: String,
+        right: Box<Expression>,
+    },
 }
 
 impl Node for Expression {
     fn token_literal(&self) -> String {
-        match &self.expression_type {
-            ExpressionTypes::Identifier(token, _) => format!("{:?}", token),
-            ExpressionTypes::IntegerLiteral(token, _) => format!("{:?}", token),
-        }
+        return format!("{}", self);
     }
 }
 

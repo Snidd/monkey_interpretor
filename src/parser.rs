@@ -36,11 +36,14 @@ impl Parser {
         }
     }
 
-    fn run_prefix(&self, token: &Token) -> Option<Expression> {
+    fn run_prefix(&mut self, token: &Token) -> Result<Expression, ParseErrors> {
         match token {
-            Token::IDENT(ident) => Some(self.parse_identifier(ident)),
-            Token::INT(value) => Some(self.parse_integer_literal(value.clone())),
-            _ => None,
+            Token::IDENT(ident) => Ok(self.parse_identifier(ident)),
+            Token::INT(value) => Ok(self.parse_integer_literal(value.clone())),
+            Token::BANG | Token::MINUS => self.parse_prefix_expression(),
+            _ => Err(ParseErrors::NoPrefixParser {
+                token: token.clone(),
+            }),
         }
     }
 
@@ -83,34 +86,40 @@ impl Parser {
         }
     }
 
+    fn parse_prefix_expression(&mut self) -> Result<Expression, ParseErrors> {
+        let current_token = self.cur_token.clone();
+
+        self.next_token();
+
+        let right_expression = self.parse_expression(Precedence::Prefix)?;
+
+        Ok(Expression {
+            expression_type: ExpressionTypes::PrefixExpression {
+                token: current_token.clone(),
+                operator: format!("{}", current_token.get_type()),
+                right: Box::new(right_expression),
+            },
+        })
+    }
+
     fn parse_expression_statement(&mut self) -> Result<Statement, ParseErrors> {
         let token = self.cur_token.clone();
-        let expression = self.parse_expression(Precedence::Lowest);
+        let expression = self.parse_expression(Precedence::Lowest)?;
 
         if self.peek_token_is(TYPE_SEMICOLON) {
             self.next_token();
         }
 
-        if let Some(expression) = expression {
-            return Ok(Statement {
-                statement_type: StatementTypes::ExpressionStatement(token, Some(expression)),
-            });
-        } else {
-            return Err(ParseErrors::UnknownExpression {
-                expression: self.cur_token.get_type().to_string(),
-            });
-        }
+        return Ok(Statement {
+            statement_type: StatementTypes::ExpressionStatement(token, Some(expression)),
+        });
     }
 
-    fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
-        let precedence = precedence as isize;
-        let prefix = self.run_prefix(&self.cur_token);
-
-        if let Some(expression) = prefix {
-            return Some(expression);
-        } else {
-            return None;
-        }
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParseErrors> {
+        let _precedence = precedence as isize;
+        let token = self.cur_token.clone();
+        let prefix = self.run_prefix(&token);
+        return prefix;
     }
 
     pub fn parse_identifier(&self, ident: &str) -> Expression {
@@ -188,6 +197,49 @@ impl Parser {
 
 #[cfg(test)]
 use crate::lexer::Lexer;
+
+#[test]
+fn test_parsing_prefix_expressions() {
+    let prefix_tests = vec![("!5;", "!", 5), ("-15;", "-", 15)];
+    for (input, _operator, _value) in prefix_tests {
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        let program = check_parser_errors(program);
+
+        if program.statements.len() != 1 {
+            assert!(
+                false,
+                "Should have 1 statement, got {}",
+                program.statements.len()
+            )
+        }
+
+        let statement = &program.statements[0];
+        match &statement.statement_type {
+            StatementTypes::ExpressionStatement(_, expr) => {
+                if let Some(expression) = expr {
+                    match &expression.expression_type {
+                        ExpressionTypes::PrefixExpression {
+                            token: _,
+                            operator: _,
+                            right: _,
+                        } => (),
+                        _ => assert!(false, "Expression should be prefix expression"),
+                    }
+                } else {
+                    assert!(false, "Should have an expression!")
+                }
+            }
+            _ => assert!(false, "Statement should be ExpressionStatement"),
+        }
+    }
+}
+
+#[test]
+fn test_integer_literal() {}
+
 #[test]
 fn test_identifier_expression() {
     let input = "foobar;";
@@ -308,8 +360,7 @@ fn test_let_statement(statement: &Statement, expected_name: &str) -> bool {
 }
 
 fn check_parser_errors(result: Result<Program, Vec<ParseErrors>>) -> Program {
-    if result.is_err() {
-        let errors = result.unwrap_err();
+    if let Err(errors) = result {
         println!("{:?}", errors);
         assert!(false);
         return Program {
