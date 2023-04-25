@@ -197,11 +197,23 @@ impl Parser {
 
 #[cfg(test)]
 use crate::lexer::Lexer;
-
+#[test]
+fn test_parsing_infix_expressions() {
+    let infix_tests = vec![
+        ("5 + 5;", 5, "+", 5),
+        ("5 - 5;", 5, "-", 5),
+        ("5 * 5;", 5, "*", 5),
+        ("5 / 5;", 5, "/", 5),
+        ("5 > 5;", 5, ">", 5),
+        ("5 < 5;", 5, "<", 5),
+        ("5 == 5;", 5, "==", 5),
+        ("5 != 5;", 5, "!=", 5),
+    ];
+}
 #[test]
 fn test_parsing_prefix_expressions() {
-    let prefix_tests = vec![("!5;", "!", 5), ("-15;", "-", 15)];
-    for (input, _operator, _value) in prefix_tests {
+    let prefix_tests = vec![("!5;", "BANG", 5), ("-15;", "MINUS", 15)];
+    for (input, expected_operator, expected_value) in prefix_tests {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
@@ -217,28 +229,34 @@ fn test_parsing_prefix_expressions() {
         }
 
         let statement = &program.statements[0];
-        match &statement.statement_type {
-            StatementTypes::ExpressionStatement(_, expr) => {
-                if let Some(expression) = expr {
-                    match &expression.expression_type {
-                        ExpressionTypes::PrefixExpression {
-                            token: _,
-                            operator: _,
-                            right: _,
-                        } => (),
-                        _ => assert!(false, "Expression should be prefix expression"),
-                    }
-                } else {
-                    assert!(false, "Should have an expression!")
-                }
+        if let StatementTypes::ExpressionStatement(_, expr) = &statement.statement_type {
+            if let ExpressionTypes::PrefixExpression {
+                token: _,
+                operator,
+                right,
+            } = &expr.as_ref().unwrap().expression_type
+            {
+                assert_eq!(expected_operator, operator);
+
+                assert!(test_integer_literal(right, &expected_value))
+            } else {
+                assert!(false, "Expression should be prefix expression!")
             }
-            _ => assert!(false, "Statement should be ExpressionStatement"),
+        } else {
+            assert!(false, "Statement should be ExpressionStatement")
         }
     }
 }
 
-#[test]
-fn test_integer_literal() {}
+fn test_integer_literal(right_expr: &Box<Expression>, expected_value: &i32) -> bool {
+    if let ExpressionTypes::IntegerLiteral(_, val) = right_expr.expression_type {
+        assert_eq!(&val, expected_value);
+        return true;
+    } else {
+        assert!(false, "Expression should be an Integer Literal");
+        return false;
+    }
+}
 
 #[test]
 fn test_identifier_expression() {
